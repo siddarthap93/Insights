@@ -63,8 +63,27 @@ public class MessageSubscriberFactory {
 		return instance;
 	}
 	
+	private Connection getConnection() {
+		MessageQueueDataModel messageQueueConfig = ApplicationConfigProvider.getInstance().getMessageQueue();
+		if(factory == null) {
+			factory = new ConnectionFactory();
+			factory.setHost(messageQueueConfig.getHost());
+			factory.setUsername(messageQueueConfig.getUser());
+			factory.setPassword(messageQueueConfig.getPassword());
+		}
+		try {
+			Connection connection = factory.newConnection();
+			return connection;
+		} catch (IOException e) {
+			log.error("Unable to create MQ connection", e);
+		} catch (TimeoutException e) {
+			log.error("Unable to create MQ connection within specified time.", e);
+		}
+		return null;
+	}
+	
 	public void registerSubscriber(String routingKey, final EngineSubscriberResponseHandler responseHandler) throws Exception {
-		Channel channel = connection.createChannel();
+		Channel channel = getConnection().createChannel();
 		String queueName = routingKey.replace(".", "_");
 		channel.queueDeclare(queueName, true, false, false, null);
 		channel.queueBind(queueName, MessageConstants.EXCHANGE_NAME, routingKey);
