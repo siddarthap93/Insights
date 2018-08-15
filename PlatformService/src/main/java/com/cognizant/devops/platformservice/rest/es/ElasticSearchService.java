@@ -15,6 +15,8 @@
  ******************************************************************************/
 package com.cognizant.devops.platformservice.rest.es;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
@@ -80,6 +82,7 @@ public class ElasticSearchService {
 			}
 			String grafanaUrl = grafanaBaseUrl + "/dashboard/";
 			String grafanaIframeUrl = grafanaBaseUrl + "/dashboard/script/iSight.js?url=";
+			String grafanaDomainUrl = grafanaUrl(grafanaBaseUrl);
 			for(JsonElement data : dashboardsJsonArray){
 				JsonObject dashboardData = data.getAsJsonObject();
 				DashboardModel model = new DashboardModel();
@@ -87,7 +90,7 @@ public class ElasticSearchService {
 				model.setTitle(dashboardData.get("title").getAsString());
 				if(dashboardData.has("type")) {
 					if("dash-db".equals(dashboardData.get("type").getAsString())) {
-						model.setUrl(grafanaIframeUrl + grafanaUrl + dashboardData.get("url").getAsString());
+						model.setUrl(grafanaIframeUrl + grafanaDomainUrl + dashboardData.get("url").getAsString());
 						dashboardResponse.addDashboard(model);
 					}
 				}else {
@@ -154,5 +157,19 @@ public class ElasticSearchService {
 				dbHandler.cloneVisualizations(baseUrl + viz.get("_id").getAsString(), viz.get("_source").getAsJsonObject());
 			}
 		}
+	}
+	
+	private String grafanaUrl(String baseUrl) {
+		String parsedUrl = null;
+		try {
+			URL uri = new URL(baseUrl);
+			parsedUrl = uri.getProtocol() + "://" + uri.getHost();
+			if(uri.getPort() > -1) {
+				parsedUrl = parsedUrl + ":" + uri.getPort();
+			}
+		} catch (MalformedURLException e) {
+			log.error("Error in Parsing Grafana URL", e);
+		}
+		return parsedUrl;
 	}
 }
