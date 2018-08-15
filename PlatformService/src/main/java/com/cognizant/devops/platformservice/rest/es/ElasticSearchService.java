@@ -85,8 +85,15 @@ public class ElasticSearchService {
 				DashboardModel model = new DashboardModel();
 				model.setId(dashboardData.get("title").getAsString());
 				model.setTitle(dashboardData.get("title").getAsString());
-				model.setUrl(grafanaIframeUrl + grafanaUrl + dashboardData.get("uri").getAsString());
-				dashboardResponse.addDashboard(model);
+				if(dashboardData.has("type")) {
+					if("dash-db".equals(dashboardData.get("type").getAsString())) {
+						model.setUrl(grafanaIframeUrl + grafanaUrl + dashboardData.get("url").getAsString());
+						dashboardResponse.addDashboard(model);
+					}
+				}else {
+					model.setUrl(grafanaIframeUrl + grafanaUrl + dashboardData.get("uri").getAsString());
+					dashboardResponse.addDashboard(model);
+				}
 			}
 			/*ElasticSearchDBHandler dbHandler = new ElasticSearchDBHandler();
 			String url = ApplicationConfigProvider.getInstance().getEndpointData().getElasticSearchEndpoint() +"/.kibana/dashboard/_search?fields=_id,title";
