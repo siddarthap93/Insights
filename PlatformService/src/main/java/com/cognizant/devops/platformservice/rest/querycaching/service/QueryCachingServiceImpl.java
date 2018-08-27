@@ -39,6 +39,10 @@ import com.google.gson.JsonParser;
 public class QueryCachingServiceImpl implements QueryCachingService {
 
 	private static Logger log = Logger.getLogger(QueryCachingServiceImpl.class);
+	private final String LOAD_CACHETIME_QUERY_FROM_RESOURCES = loadEsQueryFromJsonFile(
+			QueryCachingConstants.LOAD_CACHETIME_QUERY_FROM_RESOURCES);
+	private final String LOAD_CACHEVARIANCE_QUERY_FROM_RESOURCES = loadEsQueryFromJsonFile(
+			QueryCachingConstants.LOAD_CACHEVARIANCE_QUERY_FROM_RESOURCES);
 
 	@Override
 	public JsonObject getCacheResults(String requestPayload) {
@@ -135,17 +139,16 @@ public class QueryCachingServiceImpl implements QueryCachingService {
 				String cacheDetailsHash = getCacheDetailsHash(cachingType, cachingValue);
 				String queryHash = DigestUtils.md5Hex(statement + cacheDetailsHash).toUpperCase();
 				String esQuery = "";
-				String loadEsCacheQuery = "";
+				// String loadEsCacheQuery = "";
 
 				if (cachingType.equalsIgnoreCase(QueryCachingConstants.FIXED_TIME)) {
-					loadEsCacheQuery = loadEsQueryFromJsonFile(
-							QueryCachingConstants.LOAD_CACHETIME_QUERY_FROM_RESOURCES);
-					esQuery = esQueryWithFixedTime(loadEsCacheQuery, currentTime, cachingValue, queryHash);
-				} else {
-					loadEsCacheQuery = loadEsQueryFromJsonFile(
-							QueryCachingConstants.LOAD_CACHEVARIANCE_QUERY_FROM_RESOURCES);
-					esQuery = esQueryTemplateWithVariance(loadEsCacheQuery, cachingValue, startTime, endTime,
+					// loadEsCacheQuery = LOAD_CACHETIME_QUERY_FROM_RESOURCES;
+					esQuery = esQueryWithFixedTime(LOAD_CACHETIME_QUERY_FROM_RESOURCES, currentTime, cachingValue,
 							queryHash);
+				} else {
+					// loadEsCacheQuery = LOAD_CACHEVARIANCE_QUERY_FROM_RESOURCES;
+					esQuery = esQueryTemplateWithVariance(LOAD_CACHEVARIANCE_QUERY_FROM_RESOURCES, cachingValue,
+							startTime, endTime, queryHash);
 				}
 
 				ElasticSearchDBHandler esDbHandler = new ElasticSearchDBHandler();
@@ -236,22 +239,16 @@ public class QueryCachingServiceImpl implements QueryCachingService {
 	}
 
 	private String loadEsQueryFromJsonFile(String fileName) {
-		BufferedReader reader = null;
-		InputStream in = null;
-		try {
-			in = getClass().getClassLoader().getResourceAsStream(fileName);
-			reader = new BufferedReader(new InputStreamReader(in));
+		/*
+		 * BufferedReader reader = null; InputStream in = null;
+		 */
+		try (InputStream in = getClass().getClassLoader().getResourceAsStream(fileName);
+				BufferedReader reader = new BufferedReader(new InputStreamReader(in));) {
 			return org.apache.commons.io.IOUtils.toString(reader);
 		} catch (Exception e) {
 			log.error("Error in reading file!" + e);
-		} finally {
-			try {
-				in.close();
-				reader.close();
-			} catch (NullPointerException | IOException e) {
-				log.error("Error closing IOStream" + e);
-			}
 		}
 		return null;
 	}
+
 }
