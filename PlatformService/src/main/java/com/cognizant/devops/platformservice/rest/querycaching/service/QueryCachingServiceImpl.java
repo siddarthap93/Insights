@@ -55,7 +55,7 @@ public class QueryCachingServiceImpl implements QueryCachingService {
 		try {
 			if (isTestDBConnectivity.equals("true")) {
 				log.debug("Query Caching Test Request For Data Source Connectivity Found.");
-				resultJson = getNeo4jDatasource(requestPayload);
+				resultJson = getNeo4jDatasourceResults(requestPayload);
 			} else {
 				log.debug("Fetching Query Cache Results.");
 				resultJson = getEsCachedResults(requestPayload);
@@ -67,7 +67,7 @@ public class QueryCachingServiceImpl implements QueryCachingService {
 
 	}
 
-	private JsonObject getNeo4jDatasource(String queryjson) throws GraphDBException {
+	private JsonObject getNeo4jDatasourceResults(String queryjson) throws GraphDBException {
 
 		Neo4jDBHandler dbHandler = new Neo4jDBHandler();
 		GraphResponse response = null;
@@ -175,7 +175,7 @@ public class QueryCachingServiceImpl implements QueryCachingService {
 					JsonObject saveCache = new JsonObject();
 
 					JsonObject graphResponse = null;
-					graphResponse = getNeo4jDatasource(requestPayload);
+					graphResponse = getNeo4jDatasourceResults(requestPayload);
 					saveCache.addProperty(QueryCachingConstants.QUERY_HASH, queryHash);
 					saveCache.addProperty(QueryCachingConstants.CACHING_TYPE, cachingType);
 					saveCache.addProperty(QueryCachingConstants.CACHING_VALUE, cachingValue);
@@ -192,13 +192,13 @@ public class QueryCachingServiceImpl implements QueryCachingService {
 				}
 				return parser.parse(esResponse.get(QueryCachingConstants.CACHE_RESULT).getAsString()).getAsJsonObject();
 			} else {
-				return getNeo4jDatasource(requestPayload);
+				return getNeo4jDatasourceResults(requestPayload);
 			}
 
 		} catch (Exception e) {
 			log.error("Error in capturing Elasticsearch response", e);
 			try {
-				return getNeo4jDatasource(requestPayload);
+				return getNeo4jDatasourceResults(requestPayload);
 			} catch (GraphDBException graphDBEx) {
 				log.error("Exception in neo4j query execution", graphDBEx);
 			}
@@ -252,6 +252,7 @@ public class QueryCachingServiceImpl implements QueryCachingService {
 		/*
 		 * BufferedReader reader = null; InputStream in = null;
 		 */
+		log.debug("Inside loadEsQueryFromJsonFile method. Loading Elasticsearch - Query Caching Query!");
 		try (InputStream in = getClass().getClassLoader().getResourceAsStream(fileName);
 				BufferedReader reader = new BufferedReader(new InputStreamReader(in));) {
 			return org.apache.commons.io.IOUtils.toString(reader);
