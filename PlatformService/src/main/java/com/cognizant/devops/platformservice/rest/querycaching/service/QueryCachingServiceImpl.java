@@ -16,7 +16,6 @@
 package com.cognizant.devops.platformservice.rest.querycaching.service;
 
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Iterator;
@@ -54,10 +53,10 @@ public class QueryCachingServiceImpl implements QueryCachingService {
 				.toString();
 		try {
 			if (isTestDBConnectivity.equals("true")) {
-				log.debug("Query Caching Test Request For Data Source Connectivity Found.");
+				log.debug("\n\nQuery Caching Test Request For Data Source Connectivity Found.");
 				resultJson = getNeo4jDatasourceResults(requestPayload);
 			} else {
-				log.debug("Fetching Query Cache Results.");
+				log.debug("\n\nFetching Query Cache Results.");
 				resultJson = getEsCachedResults(requestPayload);
 			}
 		} catch (GraphDBException e) {
@@ -85,7 +84,7 @@ public class QueryCachingServiceImpl implements QueryCachingService {
 			String[] queriesArray = stringBuilder.toString().split(QueryCachingConstants.NEW_STATEMENT);
 			response = dbHandler.executeCypherQueryMultiple(queriesArray);
 		} catch (GraphDBException e) {
-			log.error("Exception in neo4j query execution", e);
+			log.error("\n\nException in neo4j query execution", e);
 			throw e;
 		}
 		return response.getJson();
@@ -94,7 +93,7 @@ public class QueryCachingServiceImpl implements QueryCachingService {
 	private JsonObject getEsCachedResults(String requestPayload) {
 
 		try {
-			log.debug("Inside Get Query Caching Results Method Call.");
+			log.debug("\n\nInside Get Query Caching Results Method Call.");
 			JsonParser parser = new JsonParser();
 			JsonObject requestJson = parser.parse(requestPayload).getAsJsonObject();
 			boolean isCacheResult = requestJson.get(QueryCachingConstants.METADATA).getAsJsonArray()
@@ -108,7 +107,7 @@ public class QueryCachingServiceImpl implements QueryCachingService {
 				else
 					esCacheIndex = esCacheIndex + "/querycacheresults";
 				String sourceESCacheUrl = QueryCachingConstants.ES_HOST + "/" + esCacheIndex;
-				log.debug("Query Caching Index Found As: " + sourceESCacheUrl);
+				log.debug("\n\nQuery Caching Index Found As: " + sourceESCacheUrl);
 				String cachingType = requestJson.get(QueryCachingConstants.METADATA).getAsJsonArray()
 						.get(QueryCachingConstants.ZEROTH_INDEX).getAsJsonObject()
 						.get(QueryCachingConstants.CACHING_TYPE).getAsString();
@@ -163,15 +162,16 @@ public class QueryCachingServiceImpl implements QueryCachingService {
 				JsonArray esResponseArray = new JsonArray();
 
 				if (esResponse.has("status") && esResponse.get("status").getAsInt() == 404)
-					log.debug("No such elasticsearch index is found. Creating a new index - " + sourceESCacheUrl);
+					log.debug("\n\nNo such elasticsearch index is found. Creating a new index - " + sourceESCacheUrl);
 				else
 					esResponseArray = esResponse.get("hits").getAsJsonObject().get("hits").getAsJsonArray();
 
 				if (esResponseArray.size() != 0) {
-					log.debug("Query Caching Response Found At Index: " + sourceESCacheUrl);
+					log.debug("\n\nQuery Caching Response Found At Index: " + sourceESCacheUrl);
 					esResponse = esResponseArray.get(0).getAsJsonObject().get("_source").getAsJsonObject();
 				} else {
-					log.debug("No Query Cached Results Found In Elasticsearch. Redirecting & Fetching Results From Neo4j.");
+					log.debug(
+							"\n\nNo Query Cached Results Found In Elasticsearch. Redirecting & Fetching Results From Neo4j.");
 					JsonObject saveCache = new JsonObject();
 
 					JsonObject graphResponse = null;
@@ -186,21 +186,22 @@ public class QueryCachingServiceImpl implements QueryCachingService {
 					saveCache.addProperty(QueryCachingConstants.CREATION_TIME, currentTime);
 
 					esDbHandler.queryES(sourceESCacheUrl, saveCache.toString());
-					log.debug("Saving Fetched Neo4j Results Into Elasticsearch!");
+					log.debug("\n\nSaving Fetched Neo4j Results Into Elasticsearch!");
 					return parser.parse(saveCache.get(QueryCachingConstants.CACHE_RESULT).getAsString())
 							.getAsJsonObject();
 				}
 				return parser.parse(esResponse.get(QueryCachingConstants.CACHE_RESULT).getAsString()).getAsJsonObject();
 			} else {
+				log.debug("\n\nQuery Caching Option Is Not Selected. Fetching Results From Neo4j.");
 				return getNeo4jDatasourceResults(requestPayload);
 			}
 
 		} catch (Exception e) {
-			log.error("Error in capturing Elasticsearch response", e);
+			log.error("\n\nQuery Caching - Error in capturing Elasticsearch response", e);
 			try {
 				return getNeo4jDatasourceResults(requestPayload);
 			} catch (GraphDBException graphDBEx) {
-				log.error("Exception in neo4j query execution", graphDBEx);
+				log.error("\n\nQuery Caching - Exception in neo4j query execution", graphDBEx);
 			}
 		}
 
@@ -252,12 +253,12 @@ public class QueryCachingServiceImpl implements QueryCachingService {
 		/*
 		 * BufferedReader reader = null; InputStream in = null;
 		 */
-		log.debug("Inside loadEsQueryFromJsonFile method. Loading Elasticsearch - Query Caching Query!");
+		log.debug("\n\nInside loadEsQueryFromJsonFile method. Loading Elasticsearch - Query Caching Query From Resources!");
 		try (InputStream in = getClass().getClassLoader().getResourceAsStream(fileName);
 				BufferedReader reader = new BufferedReader(new InputStreamReader(in));) {
 			return org.apache.commons.io.IOUtils.toString(reader);
 		} catch (Exception e) {
-			log.error("Error in reading file!" + e);
+			log.error("\n\nError in reading file!" + e);
 		}
 		return null;
 	}
