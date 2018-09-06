@@ -29,8 +29,9 @@ import com.cognizant.devops.platformcommons.config.ApplicationConfigCache;
 import com.cognizant.devops.platformcommons.config.ApplicationConfigProvider;
 import com.cognizant.devops.platformengine.modules.aggregator.EngineAggregatorModule;
 import com.cognizant.devops.platformengine.modules.correlation.EngineCorrelatorModule;
-import com.cognizant.devops.platformengine.modules.dataenrichment.DataEnrichmentModule;
+import com.cognizant.devops.platformengine.modules.datapurging.DataPurgingExecutor;
 import com.cognizant.devops.platformengine.modules.mapper.ProjectMapperModule;
+import com.cognizant.devops.platformengine.modules.offlinedataprocessing.OfflineDataProcessingExecutor;
 
 /**
  * Engine execution will start from Application. 1. Load the iSight config 2.
@@ -95,14 +96,26 @@ public class Application {
 						.withIntervalInSeconds(defaultInterval)
 						.repeatForever())
 				.build();
-		
-		// Schedule the Data Enrichment Module.
-		JobDetail dataEnrichmentJob = JobBuilder.newJob(DataEnrichmentModule.class)
-				.withIdentity("DataEnrichmentModule", "iSight")
+		// Schedule the DataPurging Executor Job
+		JobDetail dataPurgingJob = JobBuilder.newJob(DataPurgingExecutor.class)
+				.withIdentity("DataPurgingExecutor", "iSight")
 				.build();
 
-		Trigger dataEnrichmentTrigger = TriggerBuilder.newTrigger()
-				.withIdentity("DataEnrichmentModuleTrigger", "iSight")
+		Trigger dataPurgingTrigger = TriggerBuilder.newTrigger()
+				.withIdentity("DataPurgingExecutorTrigger", "iSight")
+				.startNow()
+				.withSchedule(SimpleScheduleBuilder.simpleSchedule()
+						.withIntervalInSeconds(defaultInterval)
+						.repeatForever())
+				.build();
+		
+		// Schedule the OfflineDataProcessingExecutor job
+		JobDetail offlineDataProcessingJob = JobBuilder.newJob(OfflineDataProcessingExecutor.class)
+				.withIdentity("OfflineDataProcessingExecutor", "iSight")
+				.build();
+
+		Trigger offlineDataProcessingTrigger = TriggerBuilder.newTrigger()
+				.withIdentity("OfflineDataProcessingExecutorTrigger", "iSight")
 				.startNow()
 				.withSchedule(SimpleScheduleBuilder.simpleSchedule()
 						.withIntervalInSeconds(defaultInterval)
@@ -117,9 +130,11 @@ public class Application {
 			scheduler.scheduleJob(aggrgatorJob, aggregatorTrigger);
 			scheduler.scheduleJob(correlationJob, correlationTrigger);
 			scheduler.scheduleJob(projectMappingJob, projectMappingTrigger);
-			scheduler.scheduleJob(dataEnrichmentJob, dataEnrichmentTrigger);
+			scheduler.scheduleJob(dataPurgingJob, dataPurgingTrigger);
+			scheduler.scheduleJob(offlineDataProcessingJob, offlineDataProcessingTrigger);
 		} catch (SchedulerException e) {
 			log.error(e);
 		}
 	}
+	
 }

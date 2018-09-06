@@ -18,12 +18,12 @@
 
 module ISightApp {
     export class HomePageController {
-        static $inject = ['$location', '$window', '$cookies', '$rootScope', 'authenticationService', 'restEndpointService', '$sce', '$timeout', '$mdDialog', 'aboutService', '$resource', 'restAPIUrlService'];
-        constructor(private $location, private $window, private $cookies, private $rootScope, private authenticationService: IAuthenticationService, private restEndpointService: IRestEndpointService, private $sce, private $timeout, private $mdDialog, private aboutService: IAboutService, private $resource, private restAPIUrlService: IRestAPIUrlService) {
+        static $inject = ['$location', '$window', '$cookies', '$rootScope', 'authenticationService', 'restEndpointService', '$sce', '$timeout', '$mdDialog', 'aboutService', '$resource', 'restAPIUrlService', 'userOnboardingService'];
+        constructor(private $location, private $window, private $cookies, private $rootScope, private authenticationService: IAuthenticationService, private restEndpointService: IRestEndpointService, private $sce, private $timeout, private $mdDialog, private aboutService: IAboutService, private $resource, private restAPIUrlService: IRestAPIUrlService, private userOnboardingService: IUserOnboardingService) {
             var self = this;
             this.authenticationService.validateSession();
             this.isValidUser = true;
-            self.iframeStyle = 'width:100%; height:1600px;';
+            self.iframeStyle = 'width:100%; height:400px;';
             var receiveMessage = function (evt) {
                 var height = parseInt(evt.data);
                 if (!isNaN(height)) {
@@ -87,7 +87,7 @@ module ISightApp {
 
             //self.selectedIndex = 2;
             //self.templateName = 'dashboards';
-
+            self.loadDataDictionaryURL();
             let location = this.$location;
             let uiConfigJsonUrl: string = location.absUrl().replace(location.path(), "");
             if (uiConfigJsonUrl.length > uiConfigJsonUrl.lastIndexOf('/')) {
@@ -98,6 +98,7 @@ module ISightApp {
             var data = configResource.get().$promise.then(function (data) {
                 self.showInsightsTab = data.showInsightsTab;
                 self.showBusinessMapping = data.showBusinessMapping;
+                self.agentsOsList = data.agentsOsList;
                 if (self.showInsightsTab) {
                     self.selectedIndex = 1;
                     self.templateName = 'insights';
@@ -125,6 +126,7 @@ module ISightApp {
 
             });
 
+            self.getGrafanaVersion();
 
         }
         isValidUser: boolean = false;
@@ -143,20 +145,21 @@ module ISightApp {
         showInsightsTab: boolean;
         shouldReload: boolean;
         selectedToolName: string;
-		showConfirmMessage: string;	
+        showConfirmMessage: string;
         selectedToolCategory: string;
         footerMinHeight: string = 'min-height:' + (window.innerHeight - 146) + 'px;';
         footerHeight: string = '';
         mainContentMinHeight: string = 'min-height:' + (window.innerHeight - 146 - 96) + 'px';
         mainContentMinHeightWoSbTab: string = 'min-height:' + (window.innerHeight - 146 - 48) + 'px';
-        iframeStyle = 'width:100%; height:1600px;border:0';
+        iframeStyle = 'width:100%; height:500px;';
         iframeWidth = window.innerWidth - 20;
         iframeHeight = window.innerHeight;
         aboutMeContent = {};
         showAdminTab: boolean = false;
         showBusinessMapping: boolean = false;
+        agentsOsList = {};
         showThrobber: boolean;
-		selectedAgentID = {};
+        selectedAgentID = {};
         selectDashboard: boolean = false;
         selectedIndex: Number;
         selectedDashboardUrl: string = '';
@@ -166,6 +169,10 @@ module ISightApp {
         userCurrentOrgName: string = '';
         imageSrc: string = "dist/icons/svg/landingPage/Cognizant_Insights.svg";
         showDefaultImg: boolean = false;
+        showTrackingJsonUploadButton: boolean = false;
+        trackingJsonLocation: string = '';
+        dataDictionaryURL: string = '';
+        grafanaVersion: Number;
 
         public redirect(iconId: string): void {
             if (iconId == 'dashboard') {
@@ -208,6 +215,19 @@ module ISightApp {
             this.$mdDialog.hide();
         }
 
+        showDataDictionary() {
+            var self = this;
+            self.$mdDialog.show({
+                controller: DataDictionaryController,
+                controllerAs: 'dataDictionaryController',
+                templateUrl: './dist/modules/dataDictionary/view/dataDictionaryView.html',
+                parent: angular.element(document.body),
+                preserveScope: true,
+                clickOutsideToClose: true,
+                bindToController: true
+            })
+        }
+
         selectAct(tabName: string): void {
             this.authenticationService.validateSession();
             this.templateName = tabName;
@@ -217,12 +237,19 @@ module ISightApp {
                 self.restEndpointService.getGrafanaHost1().then(function (response) {
                     var grafanaEndPoint = response.grafanaEndPoint;
                     self.playListUrl = self.$sce.trustAsResourceUrl(grafanaEndPoint + '/dashboard/script/iSight.js?url=' + grafanaEndPoint + '/playlists');
+                    self.setScrollBarPosition();
                 });
                 // this.playListUrl = this.$sce.trustAsResourceUrl(self.restEndpointService.getGrafanaHost()  + '/dashboard/script/iSight.js?url=' + self.restEndpointService.getGrafanaHost() + '/playlists');
                 //this.playListUrl = self.restEndpointService.getGrafanaHost() + '/dashboard/script/iSight.js?url=' + self.restEndpointService.getGrafanaHost() + '/playlists';
             } else {
                 this.playListUrl = '';
             }
+        }
+
+        setScrollBarPosition() {
+            setTimeout(function () {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }, 1000);
         }
 
         addSelectedImage(selectedTab: string): void {
@@ -293,26 +320,25 @@ module ISightApp {
             //this.$cookies.remove('Authorization');
             //this.$cookies.remove('grafanaOrg');
             var self = this;
+            var uniqueString = "grfanaLoginIframe";
+            var iframe = document.createElement("iframe");
+            iframe.id = uniqueString;
+            document.body.appendChild(iframe);
+            iframe.style.display = "none";
+            iframe.contentWindow.name = uniqueString;
+            // construct a form with hidden inputs, targeting the iframe
+            var form = document.createElement("form");
+            form.target = uniqueString;
+            this.restEndpointService.getGrafanaHost1().then(function (response) {
+                form.action = response.grafanaEndPoint + "/logout";
+                // console.log("form action "+form.action);
+                form.method = "GET";
+                document.body.appendChild(form);
+                form.submit();
+            });
             this.authenticationService.logout()
                 .then(function (data) {
                     //console.log(data);
-                    var uniqueString = "grfanaLoginIframe";
-                    var iframe = document.createElement("iframe");
-                    iframe.id = uniqueString;
-                    document.body.appendChild(iframe);
-                    iframe.style.display = "none";
-                    iframe.contentWindow.name = uniqueString;
-                    // construct a form with hidden inputs, targeting the iframe
-                    var form = document.createElement("form");
-                    form.target = uniqueString;
-                    self.restEndpointService.getGrafanaHost1().then(function (response) {
-                        form.action = response.grafanaEndPoint + "/logout";
-                        // console.log("form action "+form.action);
-                        form.method = "GET";
-                        document.body.appendChild(form);
-                        form.submit();
-                    });
-
                 });
             var cookieVal = this.$cookies.getAll();
             for (var key in cookieVal) {
@@ -322,5 +348,25 @@ module ISightApp {
             }
             this.$location.path('/iSight/login');
         }
+
+        loadDataDictionaryURL() {
+            var self = this;
+            let location = self.$location;
+            let dataDictionaryUrl: string = location.absUrl().replace(location.path(), "/InSights/dataDictionary");
+            if (dataDictionaryUrl.length > dataDictionaryUrl.lastIndexOf('/')) {
+                dataDictionaryUrl = dataDictionaryUrl.substr(0, dataDictionaryUrl.lastIndexOf('/'));
+            }
+            self.dataDictionaryURL = dataDictionaryUrl + "/dataDictionary";
+        }
+
+        getGrafanaVersion() {
+            var self = this;
+            self.userOnboardingService.getGrafanaCurrentVersion()
+                .then(function (response) {
+                    var version = response.data.version;
+                    self.grafanaVersion = parseInt(version);
+                });
+        }
+
     }
 }

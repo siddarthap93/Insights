@@ -14,14 +14,45 @@
     "health": "ALM.RALLY.HEALTH"
   },
   "communication": {
-    "type": "REST"
+    "type": "REST",
+    "sslVerify": true,
+    "responseType": "JSON"
   },
   
   "dynamicTemplate": {
-	  "responseTemplate": {
-	        "LastUpdateDate": "LastUpdateDate",
-	        "Name": "StoryName"
-	  }
+    "timeFieldMapping" : {
+		"startDate" : "%Y-%m-%d"
+  	},
+  "relationMetadata": {"labels" : ["RALLY_ITERATION"],"dataUpdateSupported" : true,"uniqueKey":["workspaceID", "projectID", "iterationID"]},
+  "runSchedule": 30,
+  "storyMetadata": {"labels":["RALLY_STORY"],"dataUpdateSupported" : true,"uniqueKey":["formattedID" , "workspaceID"]},
+  "specificWorkspaceList": [
+                           
+                          ],
+  "artifactType" : ["TestCase" , "Defect" , "HierarchicalRequirement", "DefectSuite" , "TestSet" , "Task"],
+  "storyResponseTemplate" : [
+  "DefectSuites:Count", "WorkProduct:_refObjectName", "Tasks:Count","State" , "Priority" , "Risk", "TesCaseType" , "ClosedDate" , "Environment", "FlowStateChangedDate", "ScheduleState", "TestCaseCount", "PlanEstimate", "TaskActualTotal" , "TaskEstimateTotal" , "TaskEstimateTotal", "TaskRemainingTotal"
+  ],
+  "iterationResponseTemplate" : {
+							"Iteration" : {
+										"_refObjectName": "iterationName",
+										"CreationDate": "iterationCreationDate",
+										"EndDate": "iterationEndDate",
+										"PlanEstimate": "iterationPlanEstimate",
+										"PlannedVelocity": "iterationPlannedVelocity",
+										"StartDate": "iterationStartDate",
+										"TaskActualTotal": "iterationState",
+
+										"TaskEstimateTotal": "iterationTaskEstimateTotal",
+										"TaskRemainingTotal": "iterationTaskRemainingTotal",
+										"Workspace" : {
+											"_refObjectName": "iterationWorkspace"
+										              },
+										"Project" : {
+											"_refObjectName": "iterationProjectName"
+										             }
+							            }
+                               }
   },
   "toolCategory" : "ALM",
   "proxy": "proxy.companyname.com:8080/",
@@ -29,15 +60,21 @@
   "runSchedule": 30,
   "userid": "userid",
   "passwd": "passwd",
+  "dataSize" : 20,
+  "enableDataValidation": true,
   "baseUrl": "https://rally1.rallydev.com/slm/webservice/v2.0/",
   "startFrom": "2016-10-10 00:01",
+  "enableValueArray": false,
   "toolsTimeZone" : "Asia/Kolkata",
   "insightsTimeZone" : "Asia/Kolkata",
   "useResponseTemplate" : true,
-  "timeStampField":"LastUpdated",
-  "timeStampFormat":"%Y-%m-%dT%H:%M:%S",
+  "timeStampField":"lastUpdateDate",
+  "timeStampFormat":"%Y-%m-%dT%H:%M:%SZ",
+  "isEpochTimeFormat" : false,
   "isDebugAllowed" : false,
   "loggingSetting" : {
-		"logLevel" : "WARN"
+		"logLevel" : "WARN",
+		"maxBytes" : 5000000,
+		"backupCount" : 1000
 	}
 }

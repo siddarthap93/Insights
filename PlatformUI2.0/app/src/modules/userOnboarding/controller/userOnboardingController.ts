@@ -29,25 +29,19 @@ module ISightApp {
             this.homeController = homePageController;
             var self = this;
             self.getHost();
-            self.userOnboardingService.getCurrentUserOrgs().
-                then(function (orgData) {
-                    var orgDataArray = orgData.data;
-                    self.getUserAdminOrgs(orgDataArray);
-                    self.authenticationService.getGrafanaCurrentOrgAndRole()
-                        .then(function (data) {
-                            self.getCurrentOrgName(data, orgDataArray);
-                        });
-                });
-            self.userIframeStyle = 'width:100%; height:1600px;';
+            self.getApplicationDetail();
+            self.userIframeStyle = 'width:100%; height:400px;';
             var receiveMessage = function (evt) {
                 var height = parseInt(evt.data);
                 if (!isNaN(height)) {
-                    self.userIframeStyle = 'width:100%; height:' + (evt.data + 20) + 'px !important';
+                    self.userIframeStyle = 'width:100%; height:' + (evt.data + 20) + 'px !important;';
                     $timeout(0);
                 }
             }
             window.addEventListener('message', receiveMessage, false);
+            self.setScrollBarPosition();
         }
+
         userIframeStyle: String;
         homeController: HomePageController;
         userListUrl: String = '';
@@ -58,6 +52,25 @@ module ISightApp {
         adminOrgDataArray = [];
         userCurrentOrgName: String = '';
         showSwitchOptions: boolean = false;
+        showAddApplication: boolean = false;
+        addNewApplicationName: string = "";
+        showAccessGroupAddedMessage: boolean = false;
+        accessGroupMessageStatus: string = "";
+
+        getApplicationDetail() {
+            var self = this;
+            self.adminOrgDataArray = [];
+
+            self.userOnboardingService.getCurrentUserOrgs().
+                then(function (orgData) {
+                    var orgDataArray = orgData.data;
+                    self.getUserAdminOrgs(orgDataArray);
+                    self.authenticationService.getGrafanaCurrentOrgAndRole()
+                        .then(function (data) {
+                            self.getCurrentOrgName(data, orgDataArray);
+                        });
+                });
+        }
 
         getUserAdminOrgs(orgDataArray) {
             var self = this;
@@ -99,10 +112,18 @@ module ISightApp {
         }
 
         refreshIframe() {
+            var self = this;
             var myIframe = (<HTMLIFrameElement>document.getElementById('iSightIframe'));
             setTimeout(function () {
                 myIframe.src = myIframe.src;
+                self.setScrollBarPosition();
             }, 500);
+        }
+
+        setScrollBarPosition() {
+            setTimeout(function () {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }, 1000);
         }
 
         /*showAccessGroupOptions() {
@@ -112,13 +133,79 @@ module ISightApp {
 
         getHost() {
             var self = this;
+            var grafanaVersion = this.homeController.grafanaVersion;
             /*self.userListUrl = self.$sce.trustAsResourceUrl('http://localhost:3000/dashboard/script/CustomiSight.js?url=http://localhost:3000/org/users');*/
             self.restEndpointService.getGrafanaHost1().then(function (response) {
                 var grafanaEndPoint = response.grafanaEndPoint;
                 //console.log(grafanaEndPoint);
-                self.userListUrl = self.$sce.trustAsResourceUrl(grafanaEndPoint + '/dashboard/script/CustomiSight.js?url=' + grafanaEndPoint + '/org/users');
+                if (grafanaVersion >= 5) {
+                    self.userListUrl = self.$sce.trustAsResourceUrl(grafanaEndPoint + '/dashboard/script/iSight.js?url=' + grafanaEndPoint + '/org/users');
+                } else {
+                    self.userListUrl = self.$sce.trustAsResourceUrl(grafanaEndPoint + '/dashboard/script/CustomiSight.js?url=' + grafanaEndPoint + '/org/users');
+                }
             });
             //console.log(this.userListUrl);
         }
+
+        showAddApplicationBox(): void {
+            //this.showAccessGroupAddedMessage = false;
+            if (this.showAddApplication === false) {
+                this.showAddApplication = true;
+            }
+            else {
+                this.showAddApplication = false;
+            }
+        }
+
+        addApplication(params, addedApplicationName): void {
+            var self = this;
+            var statusObject = {
+                'status': false
+            }
+            if (addedApplicationName !== "") {
+                self.$mdDialog.show({
+                    controller: ShowTemplateApplicationAddConformDialogController,
+                    controllerAs: 'showTemplateApplicationAddConformDialogController',
+                    templateUrl: './dist/modules/applicationManagement/view/conformApplicationAddDialogViewTemplate.tmp.html',
+                    parent: angular.element(document.body),
+                    targetEvent: params,
+                    preserveScope: true,
+                    clickOutsideToClose: true,
+                    locals: {
+                        statusObject: statusObject,
+                        addedApplicationName: addedApplicationName,
+                    },
+                    bindToController: true,
+                    onRemoving: function () { self.addApplicationConfirmation(statusObject.status) }
+                })
+            } else if (addedApplicationName === "") {
+                self.accessGroupMessageStatus = "Error in adding access group";
+                self.showAccessGroupAddedMessage = true;
+                setTimeout(function () {
+                    self.showAccessGroupAddedMessage = false;
+                    self.accessGroupMessageStatus = "";
+                }, 1000);
+            }
+        }
+
+        addApplicationConfirmation(status): void {
+            var self = this;
+            if (status === true) {
+                this.roleService
+                    .createOrg(self.addNewApplicationName)
+                    .then(function (data) {
+                        self.showAddApplication = false;
+                        self.getApplicationDetail();
+                        self.accessGroupMessageStatus = "New access group added successfully";
+                        self.showAccessGroupAddedMessage = true;
+                        self.addNewApplicationName = "";
+                        setTimeout(function () {
+                            self.showAccessGroupAddedMessage = false;
+                            self.accessGroupMessageStatus = "";
+                        }, 1000);
+                    });
+            }
+        }
+
     }
 }
