@@ -89,7 +89,8 @@
 	{
 		"host": "localhost",
 		"user": "iSight",
-		"password": "iSight"
+		"password": "iSight",
+		"prefetchCount" : 10
 	},
 
 	"agentDetails": 
