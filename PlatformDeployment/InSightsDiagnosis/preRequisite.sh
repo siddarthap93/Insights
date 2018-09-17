@@ -42,6 +42,7 @@ fi
 #-----------------------------------OS Check
 wget http://platform.cogdevops.com/insights_install/release/latest/InSightsUI.zip
 unzip InSightsUI.zip
+#In case of offline install please give the path for zip
 sleep 5
 value=`cat ./app/uiConfig.json`
 osList=$(echo "$value" | jq -r '.agentsOsList')
@@ -50,6 +51,7 @@ osCurrentMachine=$(cat /proc/version)
 osCurrentMachine=$(echo "$osCurrentMachine" | tr '[:upper:]' '[:lower:]')
 echo "TimeStamp -> " $(date '+%F %T')""   >> check.log
 echo "Checking OS support for InSight Installation." >> check.log
+echo "  Current os details -> ${osCurrentMachine}" >> check.log
 flag="0"
 for word in $os
 do
